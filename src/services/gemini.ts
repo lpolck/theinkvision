@@ -1,6 +1,11 @@
 import { GoogleGenAI } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+const apiKey = process.env.GEMINI_API_KEY;
+if (!apiKey) {
+  console.warn("GEMINI_API_KEY não encontrada. As gerações irão falhar.");
+}
+
+const ai = new GoogleGenAI({ apiKey: apiKey || "" });
 
 export async function generateTattooIdea(imageBuffer: string, mimeType: string, description: string) {
   const model = "gemini-2.5-flash-image";
