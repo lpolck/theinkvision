@@ -1,0 +1,42 @@
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Pinyon+Script&family=DM+Sans:wght@300;400;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-bebas: "Bebas Neue", sans-serif;
+  --font-pinyon: "Pinyon Script", cursive;
+}
+
+:root {
+  --ink: #080808;
+  --paper: #f2ede4;
+  --accent: #c8392b;
+  --gold: #d4a843;
+  --surface: #111111;
+  --border: rgba(242,237,228,0.08);
+}
+
+body {
+  background: var(--ink);
+  color: var(--paper);
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  min-height: 100vh;
+}
+
+.ink-gradient {
+  background: radial-gradient(circle at top left, rgba(200, 57, 43, 0.05), transparent),
+              radial-gradient(circle at bottom right, rgba(212, 168, 67, 0.05), transparent);
+}
+
+@layer utilities {
+  .upload-box {
+    @apply border border-dashed border-[rgba(242,237,228,0.15)] min-h-[140px] flex flex-col items-center justify-center gap-[0.6rem] cursor-pointer transition-all duration-300 relative overflow-hidden bg-[rgba(242,237,228,0.02)] text-center p-6;
+  }
+  .upload-box:hover {
+    @apply border-[rgba(200,57,43,0.4)] bg-[rgba(200,57,43,0.03)];
+  }
+  .upload-box.has-file {
+    @apply border-solid border-[rgba(200,57,43,0.4)];
+  }
+}
