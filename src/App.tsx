@@ -62,21 +62,35 @@ export default function App() {
       const base64Data = preview.split(',')[1];
       const mimeType = file?.type || 'image/jpeg';
 
-      const generationPromises = [
-        generateTattooIdea(base64Data, mimeType, `${description} (variation 1)`),
-        generateTattooIdea(base64Data, mimeType, `${description} (variation 2)`),
-        generateTattooIdea(base64Data, mimeType, `${description} (variation 3)`),
-      ];
-
-      const generatedUrls = await Promise.all(generationPromises);
+      const generatedImages: GeneratedImage[] = [];
       
-      setResults(generatedUrls.map((url, index) => ({
-        id: `res-${index}`,
-        url
-      })));
-    } catch (err) {
+      // Gerando sequencialmente para evitar erro 429 (Quota Exceeded)
+      for (let i = 1; i <= 3; i++) {
+        try {
+          const url = await generateTattooIdea(base64Data, mimeType, `${description} (variação ${i})`);
+          generatedImages.push({
+            id: `res-${Date.now()}-${i}`,
+            url
+          });
+          // Atualiza os resultados conforme eles chegam
+          setResults([...generatedImages]);
+        } catch (innerErr: any) {
+          console.error(`Erro na variação ${i}:`, innerErr);
+          // Se for erro de cota, paramos e avisamos
+          if (innerErr.message?.includes('429') || innerErr.message?.includes('quota')) {
+            throw new Error('Limite de cota atingido. O Google permite poucas gerações por minuto no plano gratuito. Aguarde 1 minuto e tente novamente.');
+          }
+          // Outros erros apenas ignoramos para tentar a próxima
+        }
+      }
+
+      if (generatedImages.length === 0) {
+        throw new Error('Não foi possível gerar nenhuma das variações. Tente descrever sua ideia de outra forma.');
+      }
+
+    } catch (err: any) {
       console.error(err);
-      setError('Erro ao gerar as simulações. Verifique sua conexão e tente novamente.');
+      setError(err.message || 'Erro ao gerar as simulações. Verifique sua conexão e tente novamente.');
     } finally {
       setIsGenerating(false);
     }

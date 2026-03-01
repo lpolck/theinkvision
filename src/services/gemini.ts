@@ -1,13 +1,18 @@
 import { GoogleGenAI } from "@google/genai";
 
-const apiKey = process.env.GEMINI_API_KEY;
-if (!apiKey) {
-  console.warn("GEMINI_API_KEY não encontrada. As gerações irão falhar.");
-}
+const getApiKey = () => {
+  // Tenta pegar de várias formas possíveis para garantir compatibilidade
+  return import.meta.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
+};
 
-const ai = new GoogleGenAI({ apiKey: apiKey || "" });
+const ai = new GoogleGenAI({ apiKey: getApiKey() || "" });
 
 export async function generateTattooIdea(imageBuffer: string, mimeType: string, description: string) {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    throw new Error("CONFIG_ERROR: Chave de API (VITE_GEMINI_API_KEY) não encontrada no Netlify.");
+  }
+
   const model = "gemini-2.5-flash-image";
   
   const prompt = `
@@ -40,14 +45,23 @@ export async function generateTattooIdea(imageBuffer: string, mimeType: string, 
       },
     });
 
-    for (const part of response.candidates?.[0]?.content?.parts || []) {
+    if (!response.candidates?.[0]?.content?.parts) {
+      throw new Error("API_ERROR: O modelo não retornou uma imagem. Verifique se a descrição é permitida.");
+    }
+
+    for (const part of response.candidates[0].content.parts) {
       if (part.inlineData) {
         return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
       }
     }
-    throw new Error("No image data returned from Gemini");
-  } catch (error) {
-    console.error("Error generating tattoo:", error);
+    throw new Error("API_ERROR: Resposta da API sem dados de imagem.");
+  } catch (error: any) {
+    console.error("Erro detalhado:", error);
+    // Captura erros comuns do Google
+    if (error.message?.includes("403")) throw new Error("AUTH_ERROR: Chave de API inválida ou sem permissão para este modelo.");
+    if (error.message?.includes("429")) throw new Error("RATE_ERROR: Limite de gerações atingido. Aguarde um minuto.");
+    if (error.message?.includes("400")) throw new Error("REQUEST_ERROR: A imagem ou descrição foi recusada pelos filtros de segurança.");
+    
     throw error;
   }
 }
